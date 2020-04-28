@@ -26,6 +26,7 @@ import requests
 
 from telethon import utils
 from telethon import events
+from telethon.errors.rpcerrorlist import YouBlockedUserError
 from telethon.tl import functions, types
 
 from userbot import client, LOGGER
@@ -373,3 +374,4 @@ async def quote(event: NewMessage.Event) -> None:
           else: 
              await event.delete()   
              await client.forward_messages(event.chat_id, response.message)
+             await client.send_read_acknowledge(event.chat_id)
