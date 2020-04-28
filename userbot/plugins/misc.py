@@ -25,6 +25,7 @@ import re
 import requests
 
 from telethon import utils
+from telethon import events
 from telethon.tl import functions, types
 
 from userbot import client, LOGGER
@@ -338,3 +339,37 @@ async def deldog(event: NewMessage.Event) -> None:
     await event.answer(
         f'`Successfully pasted on` [DelDog](https://del.dog/{key})'
     )
+
+@client.onMessage(
+    command=('quote', plugin_category),
+    outgoing=True, regex=r'quote(?: |$|\n)([\s\S]*)'
+)
+async def quote(event: NewMessage.Event) -> None:
+    if event.fwd_from:
+        return 
+    if not event.reply_to_msg_id:
+       await event.edit("```Reply to any user message.```")
+       return
+    reply_message = await event.get_reply_message() 
+    if not reply_message.text:
+       await event.edit("```Reply to text message```")
+       return
+    chat = "@QuotLyBot"
+    sender = reply_message.sender
+    if reply_message.sender.bot:
+       await event.edit("```Reply to actual users message.```")
+       return
+    await event.edit("```Making a Quote```")
+    async with client.conversation(chat) as conv:
+          try:     
+              response = conv.wait_event(events.NewMessage(incoming=True, from_users=1031952739))
+              await client.forward_messages(chat, reply_message)
+              response = await response 
+          except YouBlockedUserError: 
+              await event.reply("```Please unblock @QuotLyBot and try again```")
+              return
+          if response.text.startswith("Hi!"):
+             await event.edit("```Can you kindly disable your forward privacy settings for good?```")
+          else: 
+             await event.delete()   
+             await client.forward_messages(event.chat_id, response.message)
