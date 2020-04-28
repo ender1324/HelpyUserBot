@@ -3,7 +3,7 @@
 A modular Telegram UserBot for Python which uses the [Telethon][telethon] library. It is made to help you do your usual client tasks without the hassle and also has some additional useful features.
 This is a fork of [TG-UserBot](https://github.com/kandnub/TG-UserBot), almost all credits go to kandnub and his amazing work
 
-[![Documentation Status][docsbadge]][docs]
+<!-- [![Documentation Status][docsbadge]][docs] -->
 # 
 
 ## Heroku guide is available [here][heroku-guide].

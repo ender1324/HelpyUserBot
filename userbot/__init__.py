@@ -29,11 +29,11 @@ from .utils.config_helper import resolve_env
 from .utils.client import UserBotClient
 
 
-__version__ = "0.5"
+__version__ = "0.1"
 __license__ = "GNU General Public License v3.0"
-__author__ = 'Kandarp <https://github.com/kandnub>'
+__author__ = 'Kandarp <https://github.com/kandnub> \n Ender1324 <https://github.com/ender1324>'
 __copyright__ = (
-    "TG-UserBot  Copyright (C) 2019  Kandarp <https://github.com/kandnub>"
+    "Helpy-UserBot  Copyright (C) 2019  Kandarp <https://github.com/kandnub> \n Copyright (c) 2020 ender1324 <https://github.com/ender1324>"
 )
 LEVELS = {
     'DEBUG': logging.DEBUG,

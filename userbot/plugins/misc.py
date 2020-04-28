@@ -1,18 +1,19 @@
-# TG-UserBot - A modular Telegram UserBot script for Python.
+# Helpy-UserBot - A modular Telegram UserBot script for Python. Based on TG-UserBot
 # Copyright (C) 2019  Kandarp <https://github.com/kandnub>
+# Copyright (C) 2020  Ender1324 <https://github.com/ender1324>
 #
-# TG-UserBot is free software: you can redistribute it and/or modify
+# Helpy-UserBot is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# TG-UserBot is distributed in the hope that it will be useful,
+# Helpy-UserBot is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with TG-UserBot.  If not, see <https://www.gnu.org/licenses/>.
+# along with Helpy-UserBot.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import aiohttp
@@ -302,8 +303,8 @@ async def git_repo(event: NewMessage.Event) -> None:
     except Exception as e:
         LOGGER.info("Couldnt fetch the repo link.")
         LOGGER.debug(e)
-        remote_url = "https://github.com/kandnub/TG-UserBot/"
-    await event.answer(f"[TG-UserBot]({remote_url})")
+        remote_url = "https://github.com/ender/Helpy-UserBot-experiement/"
+    await event.answer(f"[Helpy-UserBot]({remote_url})")
 
 
 @client.onMessage(
