@@ -1,6 +1,7 @@
-# TG-UserBot
+# Helpy-UserBot-experiement
 
 A modular Telegram UserBot for Python which uses the [Telethon][telethon] library. It is made to help you do your usual client tasks without the hassle and also has some additional useful features.
+This is a fork of [TG-UserBot](https://github.com/kandnub/TG-UserBot), almost all credits go to kandnub and his amazing work
 
 [![Documentation Status][docsbadge]][docs]
 # 
@@ -25,13 +26,13 @@ A modular Telegram UserBot for Python which uses the [Telethon][telethon] librar
 Clone the repository.
 
 ```sh
-$ git clone https://github.com/kandnub/TG-UserBot/
+$ git clone https://github.com/ender1324/Helpy-UserBot-experiement/ helpybutt
 ```
 
 Change the current directory to the cloned one.
 
 ```sh
-$ cd TG-UserBot
+$ cd helpybutt
 ```
 
 Edit the config either using Nano/Vim or a Text Editor and put your ENV Vars in the same.
@@ -54,9 +55,7 @@ $ python3 -m userbot
 # 
 ## Resources:
 
-- [TG-UserBot Documentations][docs]: Official userbot documentations. Here you can find all the help you need to get the bot up and running and can also find all the documented commands.
-   - Regular maintenance of docs is not possible thus some new commands may be missing from the same.
-- [Telegram Support Group][support]: Exclusive Telegram support group. On here you can ask for help, request a feature or provide feedback to improve the bot.Constructuive criticism is also appriciated
+- Killed because there isnt anything for this
 
 
 
@@ -67,6 +66,7 @@ Either submit pull requests or create an issue on here.
 ## Copyright & License
 
 - Copyright (C) 2020 [Kandarp](https://github.com/kandnub).
+- Copyright (C) 2020 [ender1324](https://github.com/ender1324).
 - Licensed under the terms of the [GNU General Public License v3.0 or later (GPLv3+)](LICENSE).
 
 [//]: # (Comment)
