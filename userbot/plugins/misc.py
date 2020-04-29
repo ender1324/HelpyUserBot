@@ -305,7 +305,7 @@ async def git_repo(event: NewMessage.Event) -> None:
     except Exception as e:
         LOGGER.info("Couldnt fetch the repo link.")
         LOGGER.debug(e)
-        remote_url = "https://github.com/ender/Helpy-UserBot-experiement/"
+        remote_url = "https://github.com/ender1324/Helpy-UserBot-experiement/"
     await event.answer(f"[Helpy-UserBot]({remote_url})")
 
 
