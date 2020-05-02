@@ -24,6 +24,10 @@ import PIL
 import re
 import requests
 
+import emoji
+from googletrans import Translator
+langi="en"
+
 from telethon import utils
 from telethon import events
 from telethon.errors.rpcerrorlist import YouBlockedUserError
@@ -49,6 +53,9 @@ dogheaders = {
     'charset': 'utf-8'
 }
 
+def deEmojify(inputString):
+    """ Remove emojis and other non-safe characters from string """
+    return emoji.get_emoji_regexp().sub(u'', inputString)
 
 def removebg_post(API_KEY: str, media: bytes or str):
     image_parameter = 'image_url' if isinstance(media, str) else 'image_file'
@@ -375,3 +382,36 @@ async def quote(event: NewMessage.Event) -> None:
              await event.delete()   
              await client.forward_messages(event.chat_id, response.message)
              await client.send_read_acknowledge(event.chat_id)
+
+@client.onMessage(
+    command=('trt', plugin_category),
+    outgoing=True, regex=r'trt(?: |$|\n)([\s\S]*)'
+    )
+
+async def translateme(e):
+    global langi
+    translator=Translator()
+    textx=await e.get_reply_message()
+    message = e.text
+    if textx:
+         message = textx
+         text = str(message.message)
+    else:
+        text = str(message[4:])
+    text = (deEmojify(text))
+    reply_text=translator.translate(text, dest=langi).text
+    reply_text="`Source: `\n"+text+"`\n\nTranslation: `\n"+reply_text
+    await client.send_message(e.chat_id,reply_text)
+    await e.delete()
+    LOGGER.debug("Translate query "+text+" was executed successfully")
+
+@client.onMessage(
+    command=('lang', plugin_category),
+    outgoing=True, regex=r'lang(?: |$|\n)([\s\S]*)'
+)
+async def lang(e):
+      global langi
+      message=await client.get_messages(e.chat_id)
+      langi = str(message[0].message[6:])
+      LOGGER.debug("trt language changed to **"+langi+"**")
+      LOGGER.debug("tts language changed to **"+langi+"**")

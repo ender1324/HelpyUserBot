@@ -13,3 +13,4 @@ requests>=2.22.0
 speedtest-cli>=2.1.2
 telethon>=1.10.6
 youtube-dl>=2019.9.28
+googletrans>=2.4.0
