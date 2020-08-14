@@ -1,4 +1,4 @@
-# Helpy-UserBot-experiement
+# Helpy-UserBot
 
 A modular Telegram UserBot for Python which uses the [Telethon][telethon] library. It is made to help you do your usual client tasks without the hassle and also has some additional useful features.
 This is a fork of [TG-UserBot](https://github.com/kandnub/TG-UserBot), almost all credits go to kandnub and his amazing work
@@ -65,7 +65,7 @@ Either submit pull requests or create an issue on here.
 
 ## Copyright & License
 
-- Copyright (C) 2020 [Kandarp](https://github.com/kandnub).
+- Copyright (C) 2019-2020 [Kandarp](https://github.com/kandnub).
 - Copyright (C) 2020 [ender1324](https://github.com/ender1324).
 - Licensed under the terms of the [GNU General Public License v3.0 or later (GPLv3+)](LICENSE).
 

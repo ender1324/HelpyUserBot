@@ -36,7 +36,12 @@ NAME = 'untitled'
     outgoing=True, regex=r"d(own)?l(oad)?(?: |$)(.+)?$"
 )
 async def download(event: NewMessage.Event) -> None:
-    """Download documents from Telegram."""
+    """
+    Download documents from Telegram.
+
+
+    `{prefix}download` or `{prefix}dl` or **{prefix}download (path)**
+    """
     name = NAME
     path = None
     match = event.matches[0].group(3)
@@ -104,7 +109,12 @@ async def download(event: NewMessage.Event) -> None:
     outgoing=True, regex=r"u(p)?l(oad)?(?: |$)(.+)?$"
 )
 async def upload(event: NewMessage.Event) -> None:
-    """Upload media to Telegram."""
+    """
+    Upload media to Telegram.
+
+
+    **{prefix}upload (path)** or **{prefix}ul (path)**
+    """
     match = event.matches[0].group(3)
     target_files = []
     if not match:
@@ -118,10 +128,8 @@ async def upload(event: NewMessage.Event) -> None:
     if '*' not in match:
         if fmatch.exists():
             target_files.append(fmatch)
-            pass
         elif dmatch.exists():
             target_files.append(dmatch)
-            pass
     if not target_files:
         for f in downloads.glob('*.*'):
             if f.match(match) and f.is_file():

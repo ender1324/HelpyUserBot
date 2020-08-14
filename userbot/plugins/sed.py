@@ -30,7 +30,7 @@ from userbot.utils.events import NewMessage
 
 
 pattern = (
-    r'(?:^|;.+?)'  # Ensure that the expression doesn't go blatant
+    r'(?:^{prefix}|;.+?)'  # Ensure that the expression doesn't go blatant
     r'([1-9]+?)?'  # line: Don't match a 0, sed counts lines from 1
     r'(?:sed|s)'  # The s command (as in substitute)
     r'(?:(?P<d>[^\n\\]))'  # Unknown delimiter with a named group d
@@ -41,7 +41,6 @@ pattern = (
     r'((?<!;)\w+)?'  # flags: Don't capture if it starts with a semicolon
     r'(?=;|$)'  # Ensure it ends with a semicolon for the next match
 )
-ub_sed_pattern = r"^{}(?:\d+)?s(ed)?"
 
 
 @client.onMessage(
@@ -49,13 +48,15 @@ ub_sed_pattern = r"^{}(?:\d+)?s(ed)?"
     regex=(pattern, re.MULTILINE | re.IGNORECASE | re.DOTALL)
 )
 async def sed_substitute(event: NewMessage.Event) -> None:
-    """Perfom a GNU like SED substitution of the matched text."""
-    if not re.match(
-        ub_sed_pattern.format(client.prefix or '.'),
-        event.raw_text
-    ):
-        return
+    """
+    Perfom a GNU like SED substitution of the matched text.
 
+
+    **{prefix}[line]s[ed]/(expression)/(substitution)/[flags][;]**
+        Everything inside the brackets is optional.
+        You can perform case conversions in the substitution as well.
+        The semi-colon is mandatory to perform multiple subs in one go.
+    """
     matches = event.matches
     reply = await event.get_reply_message()
 
@@ -65,9 +66,9 @@ async def sed_substitute(event: NewMessage.Event) -> None:
             if not original:
                 return
 
-            newStr = await sub_matches(matches, original.raw_text)
+            newStr = await sub_matches(matches, original.text)
             if newStr:
-                await original.reply('[SED]\n\n' + newStr)
+                await original.reply('**SED**:\n\n' + newStr)
         else:
             total_messages = []  # Append messages to avoid timeouts
             count = 0  # Don't fetch more than ten texts/captions
@@ -85,13 +86,13 @@ async def sed_substitute(event: NewMessage.Event) -> None:
                     break
 
             for message in total_messages:
-                newStr = await sub_matches(matches, message.raw_text)
+                newStr = await sub_matches(matches, message.text)
                 if newStr:
-                    await message.reply('[SED]\n\n' + newStr)
+                    await message.reply('**SED**\n\n' + newStr)
                     break
     except Exception as e:
         await event.answer((
-            f"{event.raw_text}"
+            f"{event.text}"
             '\n\n'
             'Like regexbox says, fuck me.\n'
             '`'
@@ -100,6 +101,7 @@ async def sed_substitute(event: NewMessage.Event) -> None:
             f"{str(e)}"
             '`'
         ), reply=True)
+        raise e
 
 
 @client.onMessage(
@@ -107,7 +109,12 @@ async def sed_substitute(event: NewMessage.Event) -> None:
     outgoing=True, regex=r"regexninja(?: |$)(on|off)?$"
 )
 async def regex_ninja(event: NewMessage.Event) -> None:
-    """Enable and disable ninja mode for @regexbot"""
+    """
+    Enable and disable ninja mode for @regexbot
+
+
+    `{prefix}regexninja` or `{prefix}regexninja on` or `{prefix}regexninja off`
+    """
     arg = event.matches[0].group(1)
     ninja = client.config['userbot'].getboolean('userbot_regexninja', False)
 

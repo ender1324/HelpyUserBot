@@ -17,6 +17,7 @@
 
 import configparser
 import logging
+import os
 import pathlib
 import platform
 import sys
@@ -27,6 +28,7 @@ from telethon.tl import types
 from sessions.redis import RedisSession
 from .utils.config_helper import resolve_env
 from .utils.client import UserBotClient
+from .utils.log_formatter import CustomFormatter, CustomMemoryHandler
 
 
 __version__ = "0.1"
@@ -53,12 +55,20 @@ sql_session = pathlib.Path(root / 'userbot.session')
 ROOT_LOGGER = logging.getLogger()
 LOGGER = logging.getLogger(__name__)
 
+streamHandler = logging.StreamHandler()
+streamHandler.setFormatter(CustomFormatter(datefmt="%X"))
+loggingHandler = CustomMemoryHandler(600, target=streamHandler)
+ROOT_LOGGER.addHandler(loggingHandler)
+logging.captureWarnings(True)
+
 if sys.platform.startswith('win'):
     from asyncio import ProactorEventLoop
-    from os import system
 
     loop = ProactorEventLoop()
-    system('color')
+    os.system('color')
+    os.system('cls')
+else:
+    os.system('clear')
 
 
 if platform.python_version_tuple() < ('3', '7', '3'):
@@ -98,10 +108,16 @@ userbot = config['userbot']
 LOGGER_CHAT_ID = userbot.getint('logger_group_id', 0)
 CONSOLE_LOGGER = userbot.get('console_logger_level', 'INFO')
 
-if CONSOLE_LOGGER.upper() in LEVELS:
-    level = LEVELS[CONSOLE_LOGGER.upper()]
-    ROOT_LOGGER.setLevel(level)
-    LOGGER.setLevel(level)
+
+if CONSOLE_LOGGER.isdigit():
+    level = int(CONSOLE_LOGGER)
+    if (level % 10 != 0) or (level > 50) or (level < 0):
+        level = logging.INFO
+else:
+    level = logging._nameToLevel.get(CONSOLE_LOGGER.upper(), logging.INFO)
+ROOT_LOGGER.setLevel(logging.NOTSET)
+LOGGER.setLevel(level)
+loggingHandler.setFlushLevel(level)
 
 if not (API_ID and API_HASH):
     print("You need to set your API keys in your config or environment!")
@@ -109,12 +125,12 @@ if not (API_ID and API_HASH):
     sys.exit(1)
 
 if REDIS_ENDPOINT and REDIS_PASSWORD:
-    REDIS_HOST = REDIS_ENDPOINT.split(':')[0]
-    REDIS_PORT = REDIS_ENDPOINT.split(':')[1]
-    redis_connection = redis.Redis(
-        host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD
-    )
     try:
+        REDIS_HOST = REDIS_ENDPOINT.split(':')[0]
+        REDIS_PORT = REDIS_ENDPOINT.split(':')[1]
+        redis_connection = redis.Redis(
+            host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD
+        )
         redis_connection.ping()
     except Exception as e:
         LOGGER.exception(e)
@@ -164,6 +180,7 @@ def verifyLoggerGroup(client: UserBotClient) -> None:
                         "Permissions missing to send messages "
                         "for the specified Logger group."
                     )
+        client.logger = entity
     except ValueError:
         disable_logger(
             "Logger group ID cannot be found. "

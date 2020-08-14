@@ -18,10 +18,11 @@
 import asyncio
 import inspect
 
+from meval import meval
+
 from userbot import client
 from userbot.utils.helpers import get_chat_link
 from userbot.utils.events import NewMessage
-from userbot.utils.meval import meval
 
 
 plugin_category = "terminal"
@@ -32,7 +33,13 @@ plugin_category = "terminal"
     outgoing=True, regex=r"eval(?: |$|\n)([\s\S]*)"
 )
 async def evaluate(event: NewMessage.Event) -> None:
-    """Evaluate Python expressions in the running script."""
+    """
+    Evaluate Python expressions in the running script.
+
+
+    **{prefix}eval (expression)**
+        **Example:** `{prefix}eval 1+1`
+    """
     expression = event.matches[0].group(1).strip()
     reply = await event.get_reply_message()
     if not expression:
@@ -69,7 +76,13 @@ async def evaluate(event: NewMessage.Event) -> None:
     outgoing=True, regex=r"exec(?: |$|\n)([\s\S]*)"
 )
 async def execute(event: NewMessage.Event) -> None:
-    """Execute Python statements in a subprocess."""
+    """
+    Execute Python statements in a subprocess.
+
+
+    **{prefix}exec (statement)**
+        **Example:** `{prefix}exec import os; os.system('clear')`
+    """
     statement = event.matches[0].group(1).strip()
     reply = await event.get_reply_message()
     if not statement:
@@ -99,7 +112,13 @@ async def execute(event: NewMessage.Event) -> None:
     outgoing=True, regex=r"term(?: |$|\n)([\s\S]*)"
 )
 async def terminal(event: NewMessage.Event) -> None:
-    """Execute terminal commands in a subprocess."""
+    """
+    Execute terminal commands in a subprocess.
+
+
+    **{prefix}term (command)**
+        **Example:** `{prefix}term echo 123`
+    """
     message = (
         str(event.chat_id) +
         ':' +
@@ -150,11 +169,15 @@ async def terminal(event: NewMessage.Event) -> None:
 
 @client.onMessage(
     command=("kill/terminate", plugin_category),
-    outgoing=True, regex=r"(kill|terminate)$",
-    info="Kill or Terminate a subprocess which is still running."
+    outgoing=True, regex=r"(kill|terminate)$"
 )
 async def killandterminate(event: NewMessage.Event) -> None:
-    """Kill or terminate a running subprocess."""
+    """
+    Kill or terminate a running subprocess by replying to the message.
+
+
+    `{prefix}kill` or `{prefix}terminate`
+    """
     if not event.reply_to_msg_id:
         await event.answer(
             "`Reply to a message to kill or terminate the process!`"

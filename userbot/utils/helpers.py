@@ -31,7 +31,6 @@ from telethon.tl import types
 from telethon.utils import get_display_name
 
 from .client import UserBotClient
-from .log_formatter import CEND, CUSR
 from .events import NewMessage
 from userbot.plugins import plugins_data
 
@@ -43,9 +42,7 @@ def printUser(entity: types.User) -> None:
     """Print the user's first name + last name upon start"""
     user = get_display_name(entity)
     print()
-    LOGGER.warning(
-        "Successfully logged in as {0}{2}{1}".format(CUSR, CEND, user)
-    )
+    LOGGER.warning("Successfully logged in as {0}".format(user))
 
 
 def printVersion(version: int, prefix: str) -> None:
@@ -53,8 +50,8 @@ def printVersion(version: int, prefix: str) -> None:
     if not prefix:
         prefix = '.'
     LOGGER.warning(
-        "{0}UserBot v{2}{1} is running, test it by sending {3}ping in"
-        " any chat.".format(CUSR, CEND, version, prefix)
+        "UserBot v{0} is running, test it by sending {1}ping in"
+        " any chat.".format(version, prefix)
     )
     print()
 
@@ -76,7 +73,6 @@ async def isRestart(client: UserBotClient) -> None:
             errors.MessageNotModifiedError, errors.MessageIdInvalidError
         ):
             LOGGER.debug(f"Failed to edit message ({message}) in {entity}.")
-            pass
 
     if updated:
         text = "`Successfully updated and restarted the userbot!`"
@@ -117,7 +113,8 @@ async def isRestart(client: UserBotClient) -> None:
 
 
 def restarter(client: UserBotClient) -> None:
-    args = [sys.executable, "-m", "userbot"]
+    executable = sys.executable.replace(' ', '\\ ')
+    args = [executable, '-m', 'userbot']
     if client.disabled_commands:
         disabled_list = ", ".join(client.disabled_commands.keys())
         os.environ['userbot_disabled_commands'] = disabled_list
@@ -126,9 +123,9 @@ def restarter(client: UserBotClient) -> None:
     client._kill_running_processes()
 
     if sys.platform.startswith('win'):
-        os.spawnle(os.P_NOWAIT, sys.executable, *args, os.environ)
+        os.spawnle(os.P_NOWAIT, executable, *args, os.environ)
     else:
-        os.execle(sys.executable, *args, os.environ)
+        os.execle(executable, *args, os.environ)
 
 
 async def restart(event: NewMessage.Event) -> None:
@@ -239,6 +236,71 @@ async def format_speed(speed_per_second, unit):
         speed /= base
 
 
+class ProgressCallback():
+    """Custom class to handle upload and download progress."""
+    def __init__(self, event, start=None, filen='unamed', update=5):
+        self.event = event
+        self.start = start or time.time()
+        self.last_upload_edit = None
+        self.last_download_edit = None
+        self.filen = filen
+        self.upload_finished = False
+        self.download_finished = False
+        self._uploaded = 0
+        self._downloaded = 0
+        self.update = update
+
+    async def resolve_prog(self, current, total):
+        """Calculate the necessary info and make a dict from it."""
+        now = time.time()
+        elp = now - self.start
+        speed = int(float(current) / elp)
+        eta = await calc_eta(elp, speed, current, total)
+        s0, s1, s2 = await format_speed(speed, ("byte", 1))
+        c0, c1, c2 = await format_speed(current, ("byte", 1))
+        t0, t1, t2 = await format_speed(total, ("byte", 1))
+        percentage = round(current / total * 100, 2)
+        return {
+            'filen': self.filen,
+            'percentage': percentage,
+            'eta': await _humanfriendly_seconds(eta),
+            'elp': await _humanfriendly_seconds(elp),
+            'current': f'{c0:.2f}{c1}{c2[0]}',
+            'total': f'{t0:.2f}{t1}{t2[0]}',
+            'speed': f'{s0:.2f}{s1}{s2[0]}/s'
+        }
+
+    async def up_progress(self, current, total):
+        """Handle the upload progress only."""
+        d = await self.resolve_prog(current, total)
+        edit, finished = ul_prog(d, self)
+        if finished:
+            if not self.upload_finished:
+                self.event = await self.event.answer(edit)
+                self.upload_finished = True
+        elif edit:
+            last_edit = self.last_upload_edit
+            if last_edit and time.time() - last_edit < 10:
+                return
+            self.event = await self.event.answer(edit)
+            self.last_upload_edit = time.time()
+
+    async def dl_progress(self, current, total):
+        """Handle the download progress only."""
+        d = await self.resolve_prog(current, total)
+        edit, finished = dl_prog(d, self)
+        if finished:
+            if not self.download_finished:
+                self.event = await self.event.answer(edit)
+                self.download_finished = True
+        elif edit:
+            last_edit = self.last_download_edit
+            if last_edit and time.time() - last_edit < 10:
+                return
+            self.event = await self.event.answer(edit)
+            self.last_download_edit = time.time()
+
+
 async def calc_eta(elp: float, speed: int, current: int, total: int) -> int:
     if total is None or total == 0:
         return 0
@@ -248,9 +310,11 @@ async def calc_eta(elp: float, speed: int, current: int, total: int) -> int:
     return int((float(total) - float(current)) / speed)
 
 
-def ul_progress(d: dict, event) -> Tuple[Union[str, bool], bool]:
+def ul_prog(d: dict, cb: ProgressCallback) -> Tuple[Union[str, bool], bool]:
     """ Logs the upload progress """
-    now = datetime.datetime.now(datetime.timezone.utc)
+    uploaded = cb._uploaded
+    current = d.get('percentage', 0)
+    # now = datetime.datetime.now(datetime.timezone.utc)
     log_text = (
         "Uploaded %(current)s of %(total)s. "
         "Progress: %(percentage)s%% speed: %(speed)s"
@@ -263,16 +327,19 @@ def ul_progress(d: dict, event) -> Tuple[Union[str, bool], bool]:
         "__ETA: %(eta)s, Elapsed: %(elp)s__"
     )
 
-    if d.get('percentage', 0) == 100:
+    if current == 100:
         return "__Successfully uploaded %(filen)s in %(elp)s!__" % d, True
-    elif (now - event.date).total_seconds() > 5:
+    elif current - uploaded >= cb.update:
+        cb._uploaded = current
         return text % d, False
     return False, False
 
 
-def dl_progress(d: dict, event) -> Tuple[Union[str, bool], bool]:
+def dl_prog(d: dict, cb: ProgressCallback) -> Tuple[Union[str, bool], bool]:
     """ Logs the download progress """
-    now = datetime.datetime.now(datetime.timezone.utc)
+    downloaded = cb._downloaded
+    current = d.get('percentage', 0)
+    # now = datetime.datetime.now(datetime.timezone.utc)
     log_text = (
         "Downloaded %(current)s of %(total)s. "
         "Progress: %(percentage)s%%"
@@ -285,62 +352,9 @@ def dl_progress(d: dict, event) -> Tuple[Union[str, bool], bool]:
         "__ETA: %(eta)s, Elapsed: %(elp)s__"
     )
 
-    if d.get('percentage', 0) == 100:
+    if current == 100:
         return "__Successfully downloaded %(filen)s in %(elp)s!__" % d, True
-    elif (now - event.date).total_seconds() > 5:
+    elif current - downloaded >= cb.update:
+        cb._downloaded = current
         return text % d, False
     return False, False
-
-
-class ProgressCallback():
-    """Custom class to handle upload and download progress."""
-    def __init__(self, event, start=None, filen='unamed'):
-        self.event = event
-        self.start = start or time.time()
-        self.last_edit = None
-        self.filen = filen
-        self.upload_finished = False
-        self.download_finished = False
-
-    async def resolve_prog(self, current, total):
-        """Calculate the necessary info and make a dict from it."""
-        if not self.last_edit:
-            self.last_edit = datetime.datetime.now(datetime.timezone.utc)
-        now = time.time()
-        elp = now - self.start
-        speed = int(float(current) / elp)
-        eta = await calc_eta(elp, speed, current, total)
-        s0, s1, s2 = await format_speed(speed, ("byte", 1))
-        c0, c1, c2 = await format_speed(current, ("byte", 1))
-        t0, t1, t2 = await format_speed(total, ("byte", 1))
-        percentage = round(current / total * 100, 2)
-        return {
-            'filen': self.filen, 'percentage': percentage,
-            'eta': await _humanfriendly_seconds(eta),
-            'elp': await _humanfriendly_seconds(elp),
-            'current': f'{c0:.2f}{c1}{c2[0]}',
-            'total': f'{t0:.2f}{t1}{t2[0]}',
-            'speed': f'{s0:.2f}{s1}{s2[0]}/s'
-        }
-
-    async def up_progress(self, current, total):
-        """Handle the upload progress only."""
-        d = await self.resolve_prog(current, total)
-        edit, finished = ul_progress(d, self.event)
-        if finished:
-            if not self.upload_finished:
-                self.event = await self.event.answer(edit)
-                self.upload_finished = True
-        elif edit:
-            self.event = await self.event.answer(edit)
-
-    async def dl_progress(self, current, total):
-        """Handle the download progress only."""
-        d = await self.resolve_prog(current, total)
-        edit, finished = dl_progress(d, self.event)
-        if finished:
-            if not self.download_finished:
-                self.event = await self.event.answer(edit)
-                self.download_finished = True
-        elif edit:
-            self.event = await self.event.answer(edit)

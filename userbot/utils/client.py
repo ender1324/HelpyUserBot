@@ -23,15 +23,18 @@ import traceback
 from typing import Dict, List
 
 from telethon import events, TelegramClient
+from telethon.tl import types
 
 from .FastTelethon import download_file, upload_file
 from .parser import parse_arguments
 from .pluginManager import PluginManager
 from .events import MessageEdited, NewMessage
+from .custom import answer, resanswer
 
 
 LOGGER = logging.getLogger(__name__)
-no_info = "There is no help available for this command!"
+no_info = "There is no description available for this command!"
+no_usage = "There is no usage info available for this command!"
 
 
 @dataclasses.dataclass
@@ -39,6 +42,7 @@ class Command:
     func: callable
     handlers: list
     info: str
+    usage: str
     builtin: bool
 
 
@@ -50,7 +54,7 @@ class UserBotClient(TelegramClient):
     database: bool = True
     disabled_commands: Dict[str, Command] = {}
     failed_imports: list = []
-    logger: bool = False
+    logger: bool or types.Channel or types.User = False
     pluginManager: PluginManager = None
     plugins: list = []
     prefix: str = None
@@ -90,11 +94,19 @@ class UserBotClient(TelegramClient):
                 else:
                     com = command
                 help_doc = info or func.__doc__ or no_info
+                _doc = inspect.cleandoc(help_doc).split('\n\n\n', maxsplit=1)
+                if len(_doc) > 1:
+                    comInfo = _doc[0].strip()
+                    comUsage = _doc[1].strip()
+                else:
+                    comInfo = _doc[0]
+                    comUsage = no_usage
 
                 UBcommand = Command(
                     func,
                     handlers,
-                    inspect.cleandoc(help_doc).format(**doc_args),
+                    comInfo.format(**doc_args).strip(),
+                    comUsage.strip(),
                     builtin
                 )
                 category = category.lower()
@@ -135,3 +147,5 @@ class UserBotClient(TelegramClient):
 UserBotClient.fast_download_file = download_file
 UserBotClient.fast_upload_file = upload_file
 UserBotClient.parse_arguments = parse_arguments
+UserBotClient.answer = answer
+UserBotClient.resanswer = resanswer

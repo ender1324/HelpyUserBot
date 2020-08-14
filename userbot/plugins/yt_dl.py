@@ -83,7 +83,20 @@ success = "`Successfully downloaded` {}"
     outgoing=True, regex=r"ytdl(?: |$|\n)([\s\S]*)"
 )
 async def yt_dl(event):
-    """Download videos from YouTube with their url in multiple formats."""
+    """
+    Download videos from YouTube with their url in multiple formats.
+
+
+    **{prefix}ytdl link1 link2 link3 [kwargs]**
+        Stream and progress are set to True, while update is at 10% by default.
+        **Arguments:**
+            `format` (The format to convert/download the video in),
+            `delete` (Whether to delete the local files or not),
+            `upload` (Whether to upload the downloaded files or not),
+            `update` (The percentage to update the progress at),
+            `stream` (Whether to upload the files as streamable or not),
+            `progress` (Whether to update the progress by edits or not)
+    """
     match = event.matches[0].group(1)
     force_document = True
     if not match:
@@ -97,10 +110,11 @@ async def yt_dl(event):
     auto_delete = kwargs.get('delete', False)
     upload = kwargs.get('upload', True)
     round_message = kwargs.get('round_message', kwargs.get('round', False))
+    update = kwargs.get('update', 10)
     supports_streaming = kwargs.get(
-        'supports_streaming', kwargs.get('stream', False)
+        'supports_streaming', kwargs.get('stream', True)
     )
-    progress = kwargs.get('progress', False)
+    progress = kwargs.get('progress', True)
     if not upload and auto_delete:
         await event.answer(
             "`The void doesn't make sense! Either don't upload or delete.`"
@@ -162,9 +176,10 @@ async def yt_dl(event):
                     params['postprocessors'].append({'key': 'EmbedThumbnail'})
 
     if progress:
-        progress = ProgressHook(event)
+        event.media = None
+        progress = ProgressHook(event, update)
         params['progress_hooks'].append(progress.hook)
-        progress_cb = ProgressCallback(event)
+        progress_cb = ProgressCallback(event, update=update)
 
     for url in args:
         await event.answer(f"`Processing {url}...`")
@@ -177,6 +192,9 @@ async def yt_dl(event):
             warnings.append(result)
         elif isinstance(output, BaseException):
             warnings.append(f'```{await client.get_traceback(output)}```')
+        elif output is None:
+            await event.answer('`Oh oh, sum ting went wong`')
+            return
         else:
             if upload:
                 path, thumb, info = output
@@ -259,11 +277,18 @@ async def fix_attributes(
             duration, width, height, round_message, supports_streaming
         )
 
+    if audio and isinstance(audio, types.DocumentAttributeAudio):
+        new_attributes.append(audio)
+    if video and isinstance(video, types.DocumentAttributeVideo):
+        new_attributes.append(video)
+
     for attr in attributes:
-        if audio and isinstance(attr, types.DocumentAttributeAudio):
-            new_attributes.append(audio)
-        elif video and isinstance(attr, types.DocumentAttributeAudio):
-            new_attributes.append(video)
+        if isinstance(attr, types.DocumentAttributeAudio):
+            if not audio:
+                new_attributes.append(attr)
+        elif isinstance(attr, types.DocumentAttributeVideo):
+            if not video:
+                new_attributes.append(attr)
         else:
             new_attributes.append(attr)
 

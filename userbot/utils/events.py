@@ -21,10 +21,23 @@ from typing import Tuple
 from telethon import events
 from telethon.tl import custom, functions, types
 
-from .custom import answer
+
+async def answer(self, *args, **kwargs):
+    if self._client:
+        return await self._client.answer(
+            await self.get_input_chat(), event=self, *args, **kwargs
+        )
+
+
+async def resanswer(self, *args, **kwargs):
+    if self._client:
+        return await self._client.resanswer(
+            await self.get_input_chat(), event=self, *args, **kwargs
+        )
 
 
 custom.Message.answer = answer
+custom.Message.resanswer = resanswer
 
 
 @events.common.name_inner_event
@@ -63,8 +76,8 @@ class NewMessage(events.NewMessage):
 
     def filter(self, event):
         """Overriding the default filter to check additional values"""
-        event = super().filter(event)
-        if not event:
+        _event = super().filter(event)
+        if not _event:
             return
 
         if self.inline is not None:
@@ -74,10 +87,11 @@ class NewMessage(events.NewMessage):
         if event._client.prefix:
             prefix = re.escape(event._client.prefix)
         else:
-            prefix = r"[^/!#@\$A-Za-z0-9]"
+            prefix = r"[^/!#@\$A-Za-z0-9\-]"
 
         if self.regex:
             exp, flags = self.regex
+            exp = exp.format(prefix=prefix)
 
             if not self.disable_prefix:
                 pattern = re.compile(
@@ -148,9 +162,20 @@ class MessageEdited(NewMessage):
 
     @classmethod
     def build(cls, update, others=None, self_id=None):
-        """Required to check if message is edited, double events"""
-        if isinstance(update, (types.UpdateEditMessage,
-                               types.UpdateEditChannelMessage)):
+        """
+        Required to check if message is edited, double events.
+        Note: Don't handle UpdateEditChannelMessage from channels since the
+              update doesn't show which user edited the message
+        """
+        if isinstance(update, types.UpdateEditMessage):
+            return cls.Event(update.message)
+        elif isinstance(update, types.UpdateEditChannelMessage):
+            if (
+                update.message.edit_date and
+                update.message.is_channel and
+                not update.message.is_group
+            ):
+                return
             return cls.Event(update.message)
 
     class Event(NewMessage.Event):

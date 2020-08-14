@@ -35,7 +35,7 @@ from telethon.tl import functions, types
 
 from userbot import client, LOGGER
 from userbot.helper_funcs import misc
-from userbot.utils.helpers import get_chat_link, restart
+from userbot.utils.helpers import get_chat_link
 from userbot.utils.events import NewMessage
 
 
@@ -69,37 +69,16 @@ def removebg_post(API_KEY: str, media: bytes or str):
 
 
 @client.onMessage(
-    command=("shutdown", plugin_category),
-    outgoing=True, regex="shutdown$", builtin=True
-)
-async def shutdown(event: NewMessage.Event) -> None:
-    """Shutdown the userbot script."""
-    await event.answer("`Disconnecting the client and exiting. Ciao!`")
-    client.reconnect = False
-    print()
-    LOGGER.info("Disconnecting the client and exiting the main script.")
-    await client.disconnect()
-
-
-@client.onMessage(
-    command=("restart", plugin_category),
-    outgoing=True, regex="restart$", builtin=True
-)
-async def restarter(event: NewMessage.Event) -> None:
-    """Restart the userbot script."""
-    await event.answer(
-        "`BRB disconnecting and starting the script again!`",
-        log=("restart", "Restarted the userbot script")
-    )
-    await restart(event)
-
-
-@client.onMessage(
     command=("rmbg", plugin_category),
     outgoing=True, regex="rmbg(?: |$)(.*)$"
 )
 async def rmbg(event: NewMessage.Event) -> None:
-    """Remove the background from an image or sticker."""
+    """
+    Remove the background from an image or sticker.
+
+
+    `{prefix}rmbg` or **{prefix}rmbg (url)**
+    """
     API_KEY = client.config['api_keys'].get('api_key_removebg', False)
     if not API_KEY:
         await event.answer("`You don't have an API key set for remove.bg!`")
@@ -108,7 +87,7 @@ async def rmbg(event: NewMessage.Event) -> None:
     match = event.matches[0].group(1)
     reply = await event.get_reply_message()
 
-    if match and match != '':
+    if match:
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(match) as response:
@@ -178,7 +157,12 @@ async def rmbg(event: NewMessage.Event) -> None:
     outgoing=True, regex="resolve(?: |$)(.*)$"
 )
 async def resolver(event: NewMessage.Event) -> None:
-    """Resolve an invite link or a username."""
+    """
+    Resolve an invite link or a username.
+
+
+    **{prefix}resolve (invite link)**
+    """
     link = event.matches[0].group(1)
     chat = None
     if not link:
@@ -266,7 +250,12 @@ async def resolver(event: NewMessage.Event) -> None:
     command=("mention", plugin_category), outgoing=True
 )
 async def bot_mention(event: NewMessage.Event) -> None:
-    """Mention a user in the bot like link with a custom name."""
+    """
+    Mention a user in the bot like link with a custom name.
+
+
+    **Hi @kandnub[kandboob]**
+    """
     newstr = event.text
     if event.entities:
         newstr = nameexp.sub(r'<a href="tg://user?id=\2">\3</a>', newstr, 0)
@@ -302,7 +291,12 @@ async def bot_mention(event: NewMessage.Event) -> None:
     outgoing=True, regex="repo$"
 )
 async def git_repo(event: NewMessage.Event) -> None:
-    """Get the repo url."""
+    """
+    Get the repo url.
+
+
+    `{prefix}repo`
+    """
     try:
         repo = git.Repo('.')
         remote_url = repo.remote().url.replace(".git", '/')
@@ -321,7 +315,12 @@ async def git_repo(event: NewMessage.Event) -> None:
     outgoing=True, regex=r'paste(?: |$|\n)([\s\S]*)'
 )
 async def deldog(event: NewMessage.Event) -> None:
-    """Paste the content to DelDog."""
+    """
+    Paste the content to DelDog.
+
+
+    `{prefix}paste` in reply to a document or **{prefix}paste (text)**
+    """
     match = event.matches[0].group(1)
     if match:
         text = match.strip()

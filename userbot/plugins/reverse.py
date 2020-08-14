@@ -48,11 +48,15 @@ AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"""
 
 
 @client.onMessage(
-    command="reverse", info="Reverse search images on Google",
-    outgoing=True, regex=r"reverse(?: |$)(\d*)"
+    command="reverse", outgoing=True, regex=r"reverse(?: |$)(\d*)"
 )
 async def reverse(event: NewMessage.Event) -> None:
-    """Reverse search supported media types on Google images."""
+    """
+    Reverse search supported media types on Google images.
+
+
+    `{prefix}reverse` in reply to a media or **{prefix}reverse (images)**
+    """
     reply = await event.get_reply_message()
     if reply and reply.media:
         ffmpeg = await is_ffmpeg_there()
@@ -156,13 +160,14 @@ async def reverse(event: NewMessage.Event) -> None:
 def _post(name: str, media: io.BytesIO):
     searchUrl = 'https://www.google.com/searchbyimage/upload'
     multipart = {'encoded_image': (name, media), 'image_content': ''}
+    headers = {'User-Agent': heavy_ua1}
 
     response = requests.post(
         searchUrl,
         files=multipart,
-        allow_redirects=False
+        allow_redirects=False,
+        headers=headers
     )
-
     return response
 
 
@@ -170,7 +175,7 @@ async def _scrape_url(googleurl):
     """Parse/Scrape the HTML code for the info we want."""
 
     UA = random.choice([heavy_ua1, heavy_ua2])
-    opener.addheaders = [('User-agent', UA)]
+    opener.addheaders = [('User-Agent', UA)]
 
     source = await _run_sync(functools.partial(opener.open, googleurl))
     if isinstance(source, urllib.error.HTTPError):
@@ -185,20 +190,24 @@ async def _scrape_url(googleurl):
     }
 
     best_guess = soup.find('div', {'class': 'r5a77d'})
-    similar_images = soup.find('div', {'class': 'e2BEnf U7izfe'}).find('a')
+    similar_images = soup.find('div', {'class': 'e2BEnf U7izfe'})
     matching_text = soup.find(
         'div', {'class': 'rg-header V5niGc dPAwzb', 'role': 'heading'}
     )
-    matching = soup.find(
+    _matching = soup.find(
         'div', {'id': 'search'}
-    ).find_all('div', {'class': 'g'})
+    )
+    if _matching:
+        matching = _matching.find_all('div', {'class': 'g'})
+    else:
+        matching = None
 
     if best_guess:
         result['best_guess'] = best_guess.a.get_text()
 
     if similar_images:
         result['similar_images'] = (
-            "https://www.google.com" + similar_images.get('href')
+            "https://www.google.com" + similar_images.find('a').get('href')
         )
 
     if matching_text:
@@ -221,7 +230,7 @@ async def _scrape_url(googleurl):
 async def _get_similar_links(link: str, lim: int = 2):
     """Parse/Scrape the HTML code for the info we want."""
 
-    opener.addheaders = [('User-agent', light_useragent)]
+    opener.addheaders = [('User-Agent', light_useragent)]
 
     source = await _run_sync(functools.partial(opener.open, link))
     if isinstance(source, urllib.error.HTTPError):

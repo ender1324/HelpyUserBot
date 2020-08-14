@@ -41,7 +41,13 @@ main_repo = "https://github.com/kandnub/TG-UserBot.git"
     outgoing=True, regex="update(?: |$)(reset|add)?$", builtin=True
 )
 async def updater(event: NewMessage.Event) -> None:
-    """Pull newest changes from the official repo and update the script/app."""
+    """
+    Pull newest changes from the official repo and update the script/app.
+
+
+    `{prefix}update` or `{prefix}update reset` or `{prefix}update add`
+        Reset will reset the repository and add will commit your changes.
+    """
     arg = event.matches[0].group(1)
     await event.answer("`Checking for updates!`")
     try:
@@ -69,7 +75,7 @@ async def updater(event: NewMessage.Event) -> None:
         fetched_items = origin.fetch()
         repo.create_head('master', origin.refs.master).set_tracking_branch(
             origin.refs.master
-        ).checkout()
+        ).checkout(force=True)
     fetched_commits = repo.iter_commits(f"HEAD..{fetched_items[0].ref.name}")
     untracked_files = repo.untracked_files
     old_commit = repo.head.commit
@@ -175,7 +181,6 @@ async def updater(event: NewMessage.Event) -> None:
                 "with an invalid environment. Couldn't update the app.`\n"
                 "`The changes will be reverted upon dyno restart.`"
             )
-            await asyncio.sleep(2)
             repo.__del__()
             await restart(event)
         else:
@@ -231,12 +236,10 @@ async def updater(event: NewMessage.Event) -> None:
 
 
 async def update_requirements():
-    reqs = ' '.join([
-        sys.executable, "-m", "pip", "install", "-r", 'requirements.txt'
-    ])
+    args = ['-m', 'pip', 'install', '--user', '-r', 'requirements.txt']
     try:
-        process = await asyncio.create_subprocess_shell(
-            reqs,
+        process = await asyncio.create_subprocess_exec(
+            sys.executable.replace(' ', '\\ '), *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
