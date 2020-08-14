@@ -37,12 +37,6 @@ __author__ = 'Kandarp <https://github.com/kandnub> \n Ender1324 <https://github.
 __copyright__ = (
     "Helpy-UserBot  Copyright (C) 2019  Kandarp <https://github.com/kandnub> \n Copyright (c) 2020 ender1324 <https://github.com/ender1324>"
 )
-LEVELS = {
-    'DEBUG': logging.DEBUG,
-    'INFO': logging.INFO,
-    'ERROR': logging.ERROR,
-    'CRITICAL': logging.CRITICAL
-}
 root = pathlib.Path(__file__).parent.parent
 
 session = "userbot"
